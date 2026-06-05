@@ -93,7 +93,7 @@ section{position:relative}
 .sbtn:active{cursor:grabbing}
 .sbtn.you{border-color:var(--gold);color:var(--gold)}.sbtn.you:hover{background:rgba(154,123,63,.1)}
 .sbtn.bad{border-color:rgba(26,34,51,.4);color:var(--ink2)}.sbtn.bad:hover{background:rgba(26,34,51,.06)}
-.sbtn i{font-size:15px;opacity:.6}
+.sbtn i{font-size:15px;opacity:.6}.sw{width:18px;height:13px;border-radius:2px;display:inline-block;box-shadow:0 1px 2px rgba(0,0,0,.3)}.sw.cash{background:linear-gradient(180deg,#3aa66a,#1f7a44)}.sw.gold{background:linear-gradient(180deg,#e6c473,#b8965a)}.sw.card{background:linear-gradient(180deg,#3a4256,#222a3c)}.sw.weight{background:linear-gradient(180deg,#4a4f5e,#23262e)}
 .resetb{background:none;border:none;color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.16em;text-transform:uppercase;cursor:pointer;margin-top:8px}
 .resetb:hover{color:var(--gold)}
 .hint{text-align:center;font-size:13.5px;color:var(--muted);margin-top:8px}
@@ -220,11 +220,11 @@ footer .name{font-family:'Cormorant Garamond',serif;font-size:24px;color:#FDFCF8
  <div id="scene3d" aria-label="Interactive 3D balance scale"></div>
  <div class="verdict even" id="verdict">Drag a weight onto the scale, watch it tip.</div>
  <div class="controls">
-  <div class="ctl"><span class="lab">Your side, we build it</span><div class="row"><button class="sbtn you" draggable="true" data-side="L"><i class="ti ti-grip-vertical"></i>Cash Flow</button><button class="sbtn you" draggable="true" data-side="L"><i class="ti ti-grip-vertical"></i>Passive Income</button></div></div>
-  <div class="ctl"><span class="lab">Working against you</span><div class="row"><button class="sbtn bad" draggable="true" data-side="R"><i class="ti ti-grip-vertical"></i>Debt</button><button class="sbtn bad" draggable="true" data-side="R"><i class="ti ti-grip-vertical"></i>Interest</button></div></div>
+  <div class="ctl"><span class="lab">Your side, we build it</span><div class="row"><button class="sbtn you" draggable="true" data-t="cash"><span class="sw cash"></span>Cash Flow</button><button class="sbtn you" draggable="true" data-t="gold"><span class="sw gold"></span>Passive Income</button></div></div>
+  <div class="ctl"><span class="lab">Working against you</span><div class="row"><button class="sbtn bad" draggable="true" data-t="card"><span class="sw card"></span>Debt</button><button class="sbtn bad" draggable="true" data-t="weight"><span class="sw weight"></span>Interest</button></div></div>
  </div>
  <div style="text-align:center"><button class="resetb" id="resetScale">Reset the scale</button></div>
- <p class="hint">Drag a weight onto the scale, or tap to drop it on. Tap a weight on the scale to remove it.</p>
+ <p class="hint" id="scaleHint">Tap a tile to add it to the scale. Tap a weight on the scale to remove it.</p>
  <div class="twocol">
   <div class="reveal"><span class="lab">Step one, we find it</span><h3>Cash Flow</h3><p>The money moving through your life right now. We map it, stop the leaks, and free up real dollars without touching the things you love. That is your seed money.</p></div>
   <div class="div"></div>
@@ -311,51 +311,64 @@ setTimeout(cfOpen,32000);document.addEventListener('mouseout',function(e){if(e.c
 m.addEventListener('click',function(e){if(e.target===m)cfClose()});
 (function(){
  var host=document.getElementById('scene3d'); if(!host||!window.THREE){return;}
+ var canDrag=!('ontouchstart' in window)&&!(window.matchMedia&&window.matchMedia('(pointer:coarse)').matches);
+ var INTRO=canDrag?'Drag a tile onto the scale, or tap it. Watch it tip.':'Tap a tile to add it to the scale. Watch it tip.';
+ var hintEl=document.getElementById('scaleHint'); if(hintEl)hintEl.innerHTML=(canDrag?'Drag a tile onto the scale, or tap it.':'Tap a tile to add it to the scale.')+' Tap a weight on the scale to remove it.';
  var W=host.clientWidth||680,H=host.clientHeight||460;
  var scene=new THREE.Scene();
- var camera=new THREE.PerspectiveCamera(42,W/H,0.1,100); camera.position.set(0,0.6,14); camera.lookAt(0,0.1,0);
+ var camera=new THREE.PerspectiveCamera(40,W/H,0.1,100); camera.position.set(0,0.7,14); camera.lookAt(0,0.2,0);
  var renderer=new THREE.WebGLRenderer({antialias:true,alpha:true}); renderer.setSize(W,H); renderer.setPixelRatio(Math.min(window.devicePixelRatio,2)); host.appendChild(renderer.domElement);
- scene.add(new THREE.HemisphereLight(0xffffff,0xd8cdb4,1.25));
- var key=new THREE.DirectionalLight(0xfff3df,2.2); key.position.set(4,9,7); scene.add(key);
- var fill=new THREE.DirectionalLight(0xffffff,1.0); fill.position.set(-6,2,7); scene.add(fill);
- var gold=new THREE.MeshStandardMaterial({color:0xB8965A,metalness:.92,roughness:.26,emissive:0x2a1f0a,emissiveIntensity:.25});
- var goldLt=new THREE.MeshStandardMaterial({color:0xDcB877,metalness:.85,roughness:.2,emissive:0x4a3514,emissiveIntensity:.3});
- var dark=new THREE.MeshStandardMaterial({color:0x222a3c,metalness:.45,roughness:.5});
+ scene.add(new THREE.HemisphereLight(0xffffff,0xcdbf9e,1.15));
+ var key=new THREE.DirectionalLight(0xfff1d8,2.3); key.position.set(5,9,8); scene.add(key);
+ var fill=new THREE.DirectionalLight(0xffffff,1.05); fill.position.set(-6,3,7); scene.add(fill);
+ var rim=new THREE.DirectionalLight(0xffe6b0,1.1); rim.position.set(0,4,-6); scene.add(rim);
+ var matGold=new THREE.MeshStandardMaterial({color:0xB8965A,metalness:.95,roughness:.22,emissive:0x2a1f0a,emissiveIntensity:.25});
+ var matGoldLt=new THREE.MeshStandardMaterial({color:0xDcB877,metalness:.9,roughness:.18,emissive:0x4a3514,emissiveIntensity:.3});
+ var matCash=new THREE.MeshStandardMaterial({color:0x2f8f57,metalness:.2,roughness:.6,emissive:0x0d3a22,emissiveIntensity:.25});
+ var matCard=new THREE.MeshStandardMaterial({color:0x2a3346,metalness:.5,roughness:.4,emissive:0x0e1422,emissiveIntensity:.3});
+ var matIron=new THREE.MeshStandardMaterial({color:0x3b4150,metalness:.6,roughness:.45,emissive:0x12151c,emissiveIntensity:.3});
  var root=new THREE.Group(); root.scale.setScalar(0.92); scene.add(root);
- root.add(new THREE.Mesh(new THREE.CylinderGeometry(1.5,1.75,0.35,48),gold)).position.y=-2.25;
- root.add(new THREE.Mesh(new THREE.CylinderGeometry(0.16,0.22,4.05,32),gold)).position.y=-0.2;
- root.add(new THREE.Mesh(new THREE.SphereGeometry(0.27,32,32),goldLt)).position.y=1.85;
+ root.add(new THREE.Mesh(new THREE.CylinderGeometry(1.5,1.75,0.35,48),matGold)).position.y=-2.25;
+ root.add(new THREE.Mesh(new THREE.CylinderGeometry(0.16,0.22,4.05,32),matGold)).position.y=-0.2;
+ root.add(new THREE.Mesh(new THREE.SphereGeometry(0.27,32,32),matGoldLt)).position.y=1.85;
  var beam=new THREE.Group(); beam.position.y=1.85; root.add(beam);
- beam.add(new THREE.Mesh(new THREE.BoxGeometry(6.6,0.17,0.17),gold));
+ beam.add(new THREE.Mesh(new THREE.BoxGeometry(6.6,0.18,0.18),matGold));
  var ARM=3.05;
  function makePan(){var a=new THREE.Group();
-   var cord=new THREE.Mesh(new THREE.CylinderGeometry(0.018,0.018,1.7,8),goldLt); cord.position.y=-0.85; a.add(cord);
+   var cord=new THREE.Mesh(new THREE.CylinderGeometry(0.02,0.02,1.7,8),matGoldLt); cord.position.y=-0.85; a.add(cord);
    var pan=new THREE.Group(); pan.position.y=-1.7; a.add(pan);
-   pan.add(new THREE.Mesh(new THREE.CylinderGeometry(1.0,0.74,0.2,44,1,true),gold));
-   var plate=new THREE.Mesh(new THREE.CircleGeometry(0.74,44),goldLt); plate.rotation.x=-Math.PI/2; plate.position.y=-0.1; pan.add(plate);
+   pan.add(new THREE.Mesh(new THREE.CylinderGeometry(1.05,0.78,0.22,44,1,true),matGold));
+   var plate=new THREE.Mesh(new THREE.CircleGeometry(0.78,44),matGoldLt); plate.rotation.x=-Math.PI/2; plate.position.y=-0.11; pan.add(plate);
    var stack=new THREE.Group(); pan.add(stack); a.userData={pan:pan,stack:stack}; return a;}
  var aL=makePan(); aL.position.x=-ARM; beam.add(aL);
  var aR=makePan(); aR.position.x=ARM; beam.add(aR);
- var items={L:[],R:[]},CAP=6,curAng=0,tgtAng=0,ignoreClick=0;
- function addW(side){var st=(side==='L'?aL:aR).userData.stack,n=st.children.length,me;
-   if(side==='L'){me=new THREE.Mesh(new THREE.CylinderGeometry(0.54,0.54,0.2,32),n%2?goldLt:gold);}
-   else{me=new THREE.Mesh(new THREE.BoxGeometry(0.84,0.22,0.84),dark);}
-   me.position.y=0.16+n*0.24; st.add(me);}
- function add(side){if(items[side].length>=CAP)return;var w=side==='L'?(items.L.length%2?4:3):(items.R.length%2?2:3);items[side].push(w);addW(side);verdict();}
- function verdict(){var v=document.getElementById('verdict'),lw=items.L.reduce(function(a,b){return a+b},0),rw=items.R.reduce(function(a,b){return a+b},0),d=lw-rw;
-   tgtAng=Math.max(-0.23,Math.min(0.23,(rw-lw)*0.05));
-   if(lw===0&&rw===0){v.className='verdict even';v.innerHTML='Drag a weight onto the scale, watch it tip.';}
+ var SIDE={cash:'L',gold:'L',card:'R',weight:'R'};
+ var items={L:[],R:[]},CAP=5,curAng=0,tgtAng=0,ignoreClick=0;
+ function build(t){
+   var g=new THREE.Group(),m;
+   if(t==='cash'){m=new THREE.Mesh(new THREE.BoxGeometry(1.0,0.26,0.56),matCash);g.add(m);var band=new THREE.Mesh(new THREE.BoxGeometry(0.22,0.27,0.58),matGoldLt);g.add(band);g.userData.h=0.26;}
+   else if(t==='gold'){m=new THREE.Mesh(new THREE.BoxGeometry(0.95,0.3,0.52),matGold);m.scale.set(1,1,1);g.add(m);var top=new THREE.Mesh(new THREE.BoxGeometry(0.7,0.02,0.4),matGoldLt);top.position.y=0.16;g.add(top);g.userData.h=0.3;}
+   else if(t==='card'){m=new THREE.Mesh(new THREE.BoxGeometry(1.05,0.08,0.66),matCard);g.add(m);var chip=new THREE.Mesh(new THREE.BoxGeometry(0.18,0.02,0.14),matGoldLt);chip.position.set(-0.3,0.05,0);g.add(chip);g.userData.h=0.16;}
+   else{m=new THREE.Mesh(new THREE.CylinderGeometry(0.46,0.52,0.4,28),matIron);g.add(m);g.userData.h=0.42;}
+   return g;
+ }
+ function addW(t){var side=SIDE[t];if(items[side].length>=CAP)return false;
+   var st=(side==='L'?aL:aR).userData.stack,y=0;st.children.forEach(function(ch){y+=ch.userData.h+0.04;});
+   var g=build(t);g.position.y=0.12+y+g.userData.h/2;st.add(g);items[side].push(t);verdict();return true;}
+ function verdict(){var v=document.getElementById('verdict'),lw=items.L.length,rw=items.R.length,d=lw-rw;
+   tgtAng=Math.max(-0.3,Math.min(0.3,(lw-rw)*0.085));
+   if(lw===0&&rw===0){v.className='verdict even';v.innerHTML=INTRO;}
    else if(d>0){v.className='verdict win';v.innerHTML='Your side wins. The dream gets funded.';}
    else if(d<0){v.className='verdict lose';v.innerHTML='Debt is winning. Let&rsquo;s find the money to fix that.';}
    else{v.className='verdict even';v.innerHTML='Dead even. One more move tips it.';}}
  document.querySelectorAll('.sbtn').forEach(function(b){
-   b.addEventListener('dragstart',function(e){e.dataTransfer.setData('text/plain',b.dataset.side);e.dataTransfer.effectAllowed='copy';});
-   b.addEventListener('click',function(){if(Date.now()<ignoreClick)return;add(b.dataset.side);});});
+   b.addEventListener('dragstart',function(e){e.dataTransfer.setData('text/plain',b.dataset.t);e.dataTransfer.effectAllowed='copy';});
+   b.addEventListener('click',function(){if(Date.now()<ignoreClick)return;addW(b.dataset.t);});});
  host.addEventListener('dragover',function(e){e.preventDefault();e.dataTransfer.dropEffect='copy';host.classList.add('drop');});
  host.addEventListener('dragleave',function(){host.classList.remove('drop');});
- host.addEventListener('drop',function(e){e.preventDefault();host.classList.remove('drop');var s=e.dataTransfer.getData('text/plain');if(s==='L'||s==='R'){add(s);ignoreClick=Date.now()+400;}});
+ host.addEventListener('drop',function(e){e.preventDefault();host.classList.remove('drop');var t=e.dataTransfer.getData('text/plain');if(SIDE[t]){addW(t);ignoreClick=Date.now()+450;}});
  var rb=document.getElementById('resetScale'); if(rb)rb.onclick=function(){items={L:[],R:[]};[aL,aR].forEach(function(a){var st=a.userData.stack;while(st.children.length){st.remove(st.children[0]);}});verdict();};
- function loop(){requestAnimationFrame(loop);curAng+=(tgtAng-curAng)*0.09;beam.rotation.z=curAng;aL.userData.pan.rotation.z=-curAng;aR.userData.pan.rotation.z=-curAng;root.rotation.y=Math.sin(Date.now()*0.00018)*0.12;renderer.render(scene,camera);}
+ function loop(){requestAnimationFrame(loop);curAng+=(tgtAng-curAng)*0.1;beam.rotation.z=curAng;aL.userData.pan.rotation.z=-curAng;aR.userData.pan.rotation.z=-curAng;root.rotation.y=Math.sin(Date.now()*0.00016)*0.1;renderer.render(scene,camera);}
  loop();verdict();
  window.addEventListener('resize',function(){W=host.clientWidth||680;H=host.clientHeight||460;camera.aspect=W/H;camera.updateProjectionMatrix();renderer.setSize(W,H);});
 })();
