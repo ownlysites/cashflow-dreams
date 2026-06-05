@@ -307,7 +307,7 @@ m.addEventListener('click',function(e){if(e.target===m)cfClose()});
  var host=document.getElementById('scene3d'); if(!host||!window.THREE){return;}
  var W=host.clientWidth||680,H=host.clientHeight||480;
  var scene=new THREE.Scene();
- var camera=new THREE.PerspectiveCamera(40,W/H,0.1,100); camera.position.set(0,1.0,10); camera.lookAt(0,0.3,0);
+ var camera=new THREE.PerspectiveCamera(42,W/H,0.1,100); camera.position.set(0,0.6,14); camera.lookAt(0,0.0,0);
  var renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});
  renderer.setSize(W,H); renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
  renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap; host.appendChild(renderer.domElement);
@@ -317,7 +317,7 @@ m.addEventListener('click',function(e){if(e.target===m)cfClose()});
  var gold=new THREE.MeshStandardMaterial({color:0xB8965A,metalness:.96,roughness:.32});
  var goldLt=new THREE.MeshStandardMaterial({color:0xDcB877,metalness:.92,roughness:.26});
  var dark=new THREE.MeshStandardMaterial({color:0x2a3142,metalness:.55,roughness:.55});
- var root=new THREE.Group(); scene.add(root);
+ var root=new THREE.Group(); root.scale.setScalar(0.9); scene.add(root);
  var base=new THREE.Mesh(new THREE.CylinderGeometry(1.5,1.75,0.35,48),gold); base.position.y=-2.25; base.castShadow=true; base.receiveShadow=true; root.add(base);
  var pillar=new THREE.Mesh(new THREE.CylinderGeometry(0.16,0.22,4.05,32),gold); pillar.position.y=-0.2; pillar.castShadow=true; root.add(pillar);
  root.add(new THREE.Mesh(new THREE.SphereGeometry(0.27,32,32),goldLt)).position.y=1.85;
