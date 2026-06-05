@@ -170,6 +170,7 @@ footer .name{font-family:'Cormorant Garamond',serif;font-size:24px;color:var(--b
 .scalehint{text-align:center;font-size:13px;color:rgba(253,252,248,.5);margin-top:8px}
 @media(max-width:880px){.scene{height:360px}.beam{width:330px;margin-left:-165px}.pan{transform-origin:50% -120px}.cords{height:120px}.cords::before,.cords::after{height:120px}.bowl{top:120px}}
 
+#scene3d{height:480px;width:100%}#scene3d canvas{display:block;width:100%!important;height:100%!important}@media(max-width:880px){#scene3d{height:380px}}
 </style></head>
 <body>
 <div class="topbar" id="topbar"><div class="b">Ownly <span>ONCE</span></div><a class="btn gold mini" href="https://cacheflo.typeform.com/COAcIB5mxsV" target="_blank" rel="noopener">Take the assessment</a></div>
@@ -200,13 +201,7 @@ footer .name{font-family:'Cormorant Garamond',serif;font-size:24px;color:var(--b
  <div class="wrap">
   <div class="center reveal"><span class="eyebrow two">The method</span><h2>Most people manage one side. We tip the scale.</h2><p class="lead" style="margin:0 auto;color:rgba(253,252,248,.86)">A budget tells you what to give up. A cash flow plan does the opposite &mdash; it finds money you&rsquo;re already spending, aims it at what you want, then turns it into income that pays you for life.</p></div>
   <div class="scalebox reveal">
-   <div class="scene">
-     <div class="base"></div><div class="pillar"></div><div class="pivot"></div>
-     <div class="beam" id="beam">
-       <div class="hook l"><div class="pan" id="panL"><div class="cords"></div><div class="bowl" id="bowlL"></div></div></div>
-       <div class="hook r"><div class="pan" id="panR"><div class="cords"></div><div class="bowl" id="bowlR"></div></div></div>
-     </div>
-   </div>
+   <div class="scene" id="scene3d" aria-label="Interactive 3D balance scale"></div>
    <div class="verdict even" id="verdict">Add to each side &mdash; watch it tip.</div>
    <div class="controls">
      <div class="ctl"><span class="lab">Your side &mdash; we build it</span><div class="row"><button class="sbtn you" data-side="L" data-w="3" data-label="Cash Flow">+ Cash Flow</button><button class="sbtn you" data-side="L" data-w="4" data-label="Passive Income">+ Passive Income</button></div></div>
@@ -298,6 +293,7 @@ footer .name{font-family:'Cormorant Garamond',serif;font-size:24px;color:var(--b
 <div class="modal" id="cfmodal"><div class="card"><button class="x" aria-label="Close" onclick="cfClose()">&times;</button><span class="eyebrow two" style="display:inline-flex">Cash Flow Checkup</span><h3 class="serif">See what you could free up.</h3><p>Two minutes. No budget, no obligation &mdash; find the money already moving through your life.</p><a class="btn gold" href="https://cacheflo.typeform.com/COAcIB5mxsV" target="_blank" rel="noopener" onclick="cfClose()">Start the assessment</a></div></div>
 <div class="smcta"><a class="btn gold" href="https://cacheflo.typeform.com/COAcIB5mxsV" target="_blank" rel="noopener">Take the 2-minute assessment</a></div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
 var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target)}})},{threshold:.12});
 document.querySelectorAll('.reveal').forEach(function(el){io.observe(el)});
@@ -308,25 +304,52 @@ function cfClose(){m.classList.remove('show')}
 setTimeout(cfOpen,30000);document.addEventListener('mouseout',function(e){if(e.clientY<=0)cfOpen()});
 m.addEventListener('click',function(e){if(e.target===m)cfClose()});
 (function(){
- var beam=document.getElementById('beam'),panL=document.getElementById('panL'),panR=document.getElementById('panR');
- var bowlL=document.getElementById('bowlL'),bowlR=document.getElementById('bowlR'),verdict=document.getElementById('verdict');
- if(!beam)return;
- var items={L:[],R:[]},K=2.4,MAX=14,CAP=6;
- function render(){
-  var lw=items.L.reduce(function(s,i){return s+i.w},0), rw=items.R.reduce(function(s,i){return s+i.w},0);
-  var rot=Math.max(-MAX,Math.min(MAX,(rw-lw)*K));
-  beam.style.transform='rotate('+rot+'deg)';
-  panL.style.transform='rotate('+(-rot)+'deg)';panR.style.transform='rotate('+(-rot)+'deg)';
-  [['L',bowlL],['R',bowlR]].forEach(function(p){var side=p[0],bowl=p[1];bowl.innerHTML='';items[side].forEach(function(it,idx){var c=document.createElement('div');c.className='chip '+(side==='L'?'you':'bad');c.textContent=it.label;c.onclick=function(){items[side].splice(idx,1);render()};bowl.appendChild(c)})});
-  var d=lw-rw;
-  if(lw===0&&rw===0){verdict.className='verdict even';verdict.innerHTML='Add to each side &mdash; watch it tip.';}
-  else if(d>0){verdict.className='verdict win';verdict.innerHTML='Your side wins &mdash; the dream gets funded.';}
-  else if(d<0){verdict.className='verdict lose';verdict.innerHTML='Debt&rsquo;s winning &mdash; let&rsquo;s find the money to fix that.';}
-  else{verdict.className='verdict even';verdict.innerHTML='Dead even &mdash; one more move tips it.';}
- }
- document.querySelectorAll('.sbtn').forEach(function(b){b.onclick=function(){var s=b.dataset.side;if(items[s].length>=CAP)return;items[s].push({w:+b.dataset.w,label:b.dataset.label});render()}});
- document.getElementById('resetScale').onclick=function(){items={L:[],R:[]};render()};
- render();
+ var host=document.getElementById('scene3d'); if(!host||!window.THREE){return;}
+ var W=host.clientWidth||680,H=host.clientHeight||480;
+ var scene=new THREE.Scene();
+ var camera=new THREE.PerspectiveCamera(40,W/H,0.1,100); camera.position.set(0,1.0,10); camera.lookAt(0,0.3,0);
+ var renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});
+ renderer.setSize(W,H); renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+ renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap; host.appendChild(renderer.domElement);
+ scene.add(new THREE.AmbientLight(0x4a5a7a,0.75));
+ var key=new THREE.DirectionalLight(0xffe7bf,1.55); key.position.set(5,9,6); key.castShadow=true; key.shadow.mapSize.set(1024,1024); key.shadow.camera.near=1; key.shadow.camera.far=40; scene.add(key);
+ var rim=new THREE.DirectionalLight(0x6f86c9,0.65); rim.position.set(-6,3,-5); scene.add(rim);
+ var gold=new THREE.MeshStandardMaterial({color:0xB8965A,metalness:.96,roughness:.32});
+ var goldLt=new THREE.MeshStandardMaterial({color:0xDcB877,metalness:.92,roughness:.26});
+ var dark=new THREE.MeshStandardMaterial({color:0x2a3142,metalness:.55,roughness:.55});
+ var root=new THREE.Group(); scene.add(root);
+ var base=new THREE.Mesh(new THREE.CylinderGeometry(1.5,1.75,0.35,48),gold); base.position.y=-2.25; base.castShadow=true; base.receiveShadow=true; root.add(base);
+ var pillar=new THREE.Mesh(new THREE.CylinderGeometry(0.16,0.22,4.05,32),gold); pillar.position.y=-0.2; pillar.castShadow=true; root.add(pillar);
+ root.add(new THREE.Mesh(new THREE.SphereGeometry(0.27,32,32),goldLt)).position.y=1.85;
+ var beam=new THREE.Group(); beam.position.y=1.85; root.add(beam);
+ var bar=new THREE.Mesh(new THREE.BoxGeometry(6.6,0.17,0.17),gold); bar.castShadow=true; beam.add(bar);
+ var ARM=3.05;
+ function makePan(){var a=new THREE.Group();
+   var cord=new THREE.Mesh(new THREE.CylinderGeometry(0.018,0.018,1.7,8),goldLt); cord.position.y=-0.85; a.add(cord);
+   var pan=new THREE.Group(); pan.position.y=-1.7; a.add(pan);
+   var bowl=new THREE.Mesh(new THREE.CylinderGeometry(1.0,0.74,0.2,44,1,true),gold); bowl.castShadow=true; pan.add(bowl);
+   var plate=new THREE.Mesh(new THREE.CircleGeometry(0.74,44),goldLt); plate.rotation.x=-Math.PI/2; plate.position.y=-0.1; pan.add(plate);
+   var stack=new THREE.Group(); pan.add(stack);
+   a.userData={pan:pan,stack:stack}; return a;}
+ var aL=makePan(); aL.position.x=-ARM; beam.add(aL);
+ var aR=makePan(); aR.position.x=ARM; beam.add(aR);
+ var ground=new THREE.Mesh(new THREE.PlaneGeometry(24,24),new THREE.ShadowMaterial({opacity:.3})); ground.rotation.x=-Math.PI/2; ground.position.y=-2.45; ground.receiveShadow=true; scene.add(ground);
+ var items={L:[],R:[]},CAP=6,curAng=0,tgtAng=0;
+ function addW(side){var st=(side==='L'?aL:aR).userData.stack; var n=st.children.length; var m;
+   if(side==='L'){m=new THREE.Mesh(new THREE.CylinderGeometry(0.42,0.42,0.17,30),n%2?goldLt:gold);}
+   else{m=new THREE.Mesh(new THREE.BoxGeometry(0.72,0.2,0.72),dark);}
+   m.castShadow=true; m.position.y=0.13+n*0.21; st.add(m);}
+ function verdict(){var v=document.getElementById('verdict'); var lw=items.L.reduce(function(a,b){return a+b},0),rw=items.R.reduce(function(a,b){return a+b},0),d=lw-rw;
+   tgtAng=Math.max(-0.23,Math.min(0.23,(rw-lw)*0.05));
+   if(lw===0&&rw===0){v.className='verdict even';v.innerHTML='Add to each side &mdash; watch it tip.';}
+   else if(d>0){v.className='verdict win';v.innerHTML='Your side wins &mdash; the dream gets funded.';}
+   else if(d<0){v.className='verdict lose';v.innerHTML='Debt&rsquo;s winning &mdash; let&rsquo;s find the money to fix that.';}
+   else{v.className='verdict even';v.innerHTML='Dead even &mdash; one more move tips it.';}}
+ document.querySelectorAll('.sbtn').forEach(function(b){b.onclick=function(){var s=b.dataset.side; if(items[s].length>=CAP)return; items[s].push(+b.dataset.w); addW(s); verdict();}});
+ var rb=document.getElementById('resetScale'); if(rb)rb.onclick=function(){items={L:[],R:[]};[aL,aR].forEach(function(a){var st=a.userData.stack; while(st.children.length){st.remove(st.children[0]);}}); verdict();};
+ function loop(){requestAnimationFrame(loop); curAng+=(tgtAng-curAng)*0.09; beam.rotation.z=curAng; aL.userData.pan.rotation.z=-curAng; aR.userData.pan.rotation.z=-curAng; root.rotation.y=Math.sin(Date.now()*0.00018)*0.13; renderer.render(scene,camera);}
+ loop(); verdict();
+ window.addEventListener('resize',function(){W=host.clientWidth||680;H=host.clientHeight||480;camera.aspect=W/H;camera.updateProjectionMatrix();renderer.setSize(W,H);});
 })();
 
 </script>
